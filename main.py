@@ -12,20 +12,24 @@ import os
 import psutil
 import plotly
 import openpyxl
-
-# Ask the user for number of taxis and passengers
-No_Taxi = int(input('Enter No_Taxi= '))
-No_passengers = int(input('Enter No_passengers= '))
+from openpyxl.styles import Font, alignment, borders
 
 
+# <editor-fold desc="Input number of taxis and riders">
+No_Taxi = int(input('Enter #Taxi= '))
+No_riders = int(input('Enter #Rider= '))
+# </editor-fold>
+
+
+# <editor-fold desc="generator">
 def generator(beginning, ending):
-    if beginning is None:
-        num = 0
     while beginning < ending:
         yield beginning
         beginning += 1
+# </editor-fold>
 
 
+# <editor-fold desc="print">
 # Disable Prints
 def block_print():
     sys.stdout = open(os.devnull, 'w')
@@ -34,16 +38,18 @@ def block_print():
 # Restore Prints
 def enable_print():
     sys.stdout = sys.__stdout__
+# </editor-fold>
 
 
-# Return 2 random integers within a range(start, end)
+# <editor-fold desc="Return 2 random integers within a range(start, end)">
 def random(start, end):
     first, second = np.random.randint(start, end), np.random.randint(start, end)
     return first, second
+# </editor-fold>
 
 
-# Generate a random user at location (x_h, y_h) in a random home area
-def sel_Home():
+# <editor-fold desc="Generate a random rider at location (x_h, y_h) in a random home area">
+def sel_home_area():
     random_home_area = np.random.choice(Home_list)
     x_h, y_h = random(0, 45)
     x_min_home_area, x_max_home_area = Home[random_home_area][0][0], Home[random_home_area][0][1]
@@ -52,10 +58,11 @@ def sel_Home():
     while x_min_home_area > x_h or x_h > x_max_home_area or y_min_home_area > y_h or y_h > y_max_home_area:
         x_h, y_h = random(0, 45)
     return x_h, y_h, random_home_area
+# </editor-fold>
 
 
-# Generate a random user at location (x_w, y_w) in a random work area
-def sel_Work():
+# <editor-fold desc="Generate a random rider at location (x_w, y_w) in a random work area">
+def sel_work_area():
     random_work_area = np.random.choice(Work_list)
     x_w, y_w = random(0, 45)
     x_min_work_area, x_max_work_area = Work[random_work_area][0][0], Work[random_work_area][0][1]
@@ -64,65 +71,76 @@ def sel_Work():
     while x_min_work_area > x_w or x_w > x_max_work_area or y_min_work_area > y_w or y_w > y_max_work_area:
         x_w, y_w = random(0, 45)
     return x_w, y_w, random_work_area
+# </editor-fold>
 
 
 api = 0
 
 
-# Calculate and return distance between 2 points (e.g. (x1, y1) and (x2, y2))
+# <editor-fold desc="Calculate and return distance between 2 points (e.g. (x1, y1) and (x2, y2))">
 def distance(node1, node2):
     global api
     api += 1
     return abs(node1[0]-node2[0])+abs(node1[1]-node2[1])
+# </editor-fold>
 
 
-# Removing selected taxi and passengers by it from taxi, origin and destination dictionaries
+# <editor-fold desc="Removing selected taxi and riders from taxi, origin and destination dictionaries">
 def del_dict_item(selected_taxi, comb_dic, index_dic):
     del Taxis[selected_taxi]
-    for each_passenger in comb_dic[selected_taxi][index_dic[selected_taxi][0]]:
-        del passengers_O[each_passenger]
-        del passengers_D[re.sub(r'o', 'd', each_passenger)]
+    for each_rider in comb_dic[selected_taxi][index_dic[selected_taxi][0]]:
+        del riders_O[each_rider]
+        del riders_D[re.sub(r'o', 'd', each_rider)]
+# </editor-fold>
 
 
-# Calculate and return -traveled distance- for each passenger respectively,
-# from dropping on point to dropping off point in sharing mode
+# <editor-fold desc="Return traveled dist for each rider respectively, from pick up to drop off point in sharing mode">
 def finding_distance_sharing(origin_list, destination_list):
-    temp_lst = []  # temp_lst store traveled distance for each passenger until dropping off taxi
-    sequence_drop_on_off = origin_list + destination_list
-    for passenger in origin_list:
-        passenger_sequence = sequence_drop_on_off[origin_list.index(passenger):
-                                                  sequence_drop_on_off.index(re.sub(r'o', 'd', passenger))+1]
+    temp_lst = []  # temp_lst store traveled distance for each rider until drop off point
+    sequence_pick_up_drop_off = origin_list + destination_list
+    for rider in origin_list:
+        rider_sequence = sequence_pick_up_drop_off[origin_list.index(rider):
+                                                       sequence_pick_up_drop_off.index(re.sub(r'o', 'd', rider))+1]
         each_one_traveled_dist = 0
-        for each in range(len(passenger_sequence) - 1):
-            if re.findall(r'[a-zA-Z]+', passenger_sequence[each])[0] == 'pd':
-                prior = passengers_D[passenger_sequence[each]]
+        for each in range(len(rider_sequence) - 1):
+            if re.findall(r'[a-zA-Z]+', rider_sequence[each])[0] == 'pd':
+                prior = riders_D[rider_sequence[each]]
             else:
-                prior = passengers_O[passenger_sequence[each]]
-            if re.findall(r'[a-zA-Z]+', passenger_sequence[each + 1])[0] == 'pd':
-                following = passengers_D[passenger_sequence[each + 1]]
+                prior = riders_O[rider_sequence[each]]
+            if re.findall(r'[a-zA-Z]+', rider_sequence[each + 1])[0] == 'pd':
+                following = riders_D[rider_sequence[each + 1]]
             else:
-                following = passengers_O[passenger_sequence[each + 1]]
+                following = riders_O[rider_sequence[each + 1]]
             each_one_traveled_dist += distance(prior, following)
         temp_lst.append(each_one_traveled_dist)
     return temp_lst
+# </editor-fold>
 
 
-Start = time.time()
+# <editor-fold desc="generate hex color">
+def color():
+    def hex():
+        return np.random.randint(250)
+    return '#{0:02X}{1:02X}{2:02X}'.format(hex(), hex(), hex())
+# </editor-fold>
+
+
+# <editor-fold desc="create areas, riders, taxis">
 # ----------------------------------------------------------------------------------------------------------------------
 #                                              Creating Home and Work Area
 # ----------------------------------------------------------------------------------------------------------------------
 Home = {}
 Work = {}
-counter = 0
+area = 0
 for y in range(0, 31, 15):
     y1, y2 = y, y+15
     for x in range(0, 31, 15):
         x1, x2 = x, x+15
-        if counter == 4 or counter == 8:
-            Work["w{0}".format(counter+1)] = [(x1, x2), (y1, y2)]
+        if area == 4 or area == 8:
+            Work["w{0}".format(area+1)] = [(x1, x2), (y1, y2)]
         else:
-            Home["h{0}".format(counter+1)] = [(x1, x2), (y1, y2)]
-        counter += 1
+            Home["h{0}".format(area+1)] = [(x1, x2), (y1, y2)]
+        area += 1
 Home_list = list(Home.keys())
 Work_list = list(Work.keys())
 
@@ -133,59 +151,61 @@ Work_list = list(Work.keys())
 Taxis = {}
 for taxi in generator(1, No_Taxi+1):
     if taxi < (No_Taxi-No_Taxi/5):
-        x, y, sel_home = sel_Home()
+        x, y, sel_home = sel_home_area()
         Taxis["t{0}".format(taxi)] = (x, y)
     else:
-        x, y, sel_work = sel_Work()
+        x, y, sel_work = sel_work_area()
         Taxis["t{0}".format(taxi)] = (x, y)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-#                                                Generate User Randomly
+#                                                Generate Rider Randomly
 # ----------------------------------------------------------------------------------------------------------------------
-Passengers_O = {}
-passengers_O = {}
-passengers_D = {}
+Riders_O = {}
+riders_O = {}
+riders_D = {}
 person = 1
-while len(passengers_O) != No_passengers:
-    # Generate /--one fifth--/ of No_passengers work to home
-    if person > int(No_passengers * (1-1/5)):
-        x, y, sel_work = sel_Work()
-        xx, yy, sel_home = sel_Home()
+while len(riders_O) != No_riders:
+    # Generate /--one fifth--/ of #riders work to home
+    if person > int(No_riders * (1-1/5)):
+        x, y, sel_work = sel_work_area()
+        xx, yy, sel_home = sel_home_area()
         if distance((x, y), (xx, yy)) > 10:
-            Passengers_O["p{0}_".format(person) + sel_work + '_to_' + sel_home] = (x, y)  # Origin_to_Destination
-            passengers_O["po{0}".format(person)] = (x, y)  # Origin
-            passengers_D["pd{0}".format(person)] = (xx, yy)  # Destination
+            Riders_O["p{0}_".format(person) + sel_work + '_to_' + sel_home] = (x, y)  # Origin_to_Destination
+            riders_O["po{0}".format(person)] = (x, y)  # Origin
+            riders_D["pd{0}".format(person)] = (xx, yy)  # Destination
             person += 1
 
-    # Generate /--one fifth--/ of (No_passengers*(4 / 5) home to home
-    elif person > int(No_passengers * (1-1/5)**2):
-        x, y, sel_home = sel_Home()
-        xx, yy, sel_home_sec = sel_Home()
+    # Generate /--one fifth--/ of (#riders*(4 / 5) home to home
+    elif person > int(No_riders * (1-1/5)**2):
+        x, y, sel_home = sel_home_area()
+        xx, yy, sel_home_sec = sel_home_area()
         while sel_home_sec == sel_home:
-            xx, yy, sel_home_sec = sel_Home()
+            xx, yy, sel_home_sec = sel_home_area()
         if distance((x, y), (xx, yy)) > 10:
-            Passengers_O["p{0}_".format(person) + sel_home + '_to_' + sel_home_sec] = (x, y)  # Origin_to_Destination
-            passengers_O["po{0}".format(person)] = (x, y)  # Origin
-            passengers_D["pd{0}".format(person)] = (xx, yy)  # Destination
+            Riders_O["p{0}_".format(person) + sel_home + '_to_' + sel_home_sec] = (x, y)  # Origin_to_Destination
+            riders_O["po{0}".format(person)] = (x, y)  # Origin
+            riders_D["pd{0}".format(person)] = (xx, yy)  # Destination
             person += 1
 
-    # Generate /--No_passengers*(4 / 5)--/ of No_passengers home to work
+    # Generate /--#riders*(4 / 5)--/ of #riders home to work
     elif person > 0:
-        x, y, sel_home = sel_Home()
-        xx, yy, sel_work = sel_Work()
+        x, y, sel_home = sel_home_area()
+        xx, yy, sel_work = sel_work_area()
         if distance((x, y), (xx, yy)) > 10:
-            Passengers_O["p{0}_".format(person) + sel_home + '_to_' + sel_work] = (x, y)  # Origin_to_Destination
-            passengers_O["po{0}".format(person)] = (x, y)  # Origin
-            passengers_D["pd{0}".format(person)] = (xx, yy)  # Destination
+            Riders_O["p{0}_".format(person) + sel_home + '_to_' + sel_work] = (x, y)  # Origin_to_Destination
+            riders_O["po{0}".format(person)] = (x, y)  # Origin
+            riders_D["pd{0}".format(person)] = (xx, yy)  # Destination
             person += 1
+# </editor-fold>
 
-# Compute distance in individual mode(each passenger travel with own vehicle)
+# <editor-fold desc="Distance based on individual mode(each rider travel with own vehicle)">
 traveled_distance = {}
-for each_person in passengers_O:
-    traveled_distance[each_person] = distance(passengers_O[each_person], passengers_D[re.sub(r'o', 'd', each_person)])
+for each_person in riders_O:
+    traveled_distance[each_person] = distance(riders_O[each_person], riders_D[re.sub(r'o', 'd', each_person)])
+# </editor-fold>
 
-
+# <editor-fold desc="plot body 1">
 # ----------------------------------------------------------------------------------------------------------------------
 #                                                        Plotting
 # ----------------------------------------------------------------------------------------------------------------------
@@ -231,60 +251,58 @@ ax.set_yticks(np.arange(0, 46, 1), minor=True)
 
 blue_patch = patches.Patch(color='blue', label="Home's Area")
 red_patch = patches.Patch(color='red', label="Work's Area")
-red_dot = ax.scatter(*zip(*list(Passengers_O.values())), marker='.', c='r', s=10, label="Passenger's Origin")
-blue_dot = ax.scatter(*zip(*list(passengers_D.values())), marker='.', c='blue', s=10, label="Passenger's Destination")
+red_dot = ax.scatter(*zip(*list(Riders_O.values())), marker='.', c='r', s=10, label="Rider's Origin")
+blue_dot = ax.scatter(*zip(*list(riders_D.values())), marker='.', c='blue', s=10, label="Rider's Destination")
 green_star = ax.scatter(*zip(*list(Taxis.values())), marker='*', c='fuchsia', s=40, label="Taxi's Location")
 
-# Hex = lambda:np.random.randint(250)
-# color = lambda : '#{0:02X}{1:02X}{2:02X}'.format(Hex(), Hex(), Hex())
-# for xyo, xyd in zip(list(passengers_O.values()), list(passengers_D.values())):
-#     ax.annotate("", xytext=xyo, xy=xyd, arrowprops=dict(color=color(), arrowstyle="->"))
-# plt.Circle((0,0),2,color='r',fill=False,clip_on=False)
-# ax.add_artist(cc)
+for xyo, xyd in zip(list(riders_O.values()), list(riders_D.values())):
+    ax.annotate("", xytext=xyo, xy=xyd, arrowprops=dict(color=color(), arrowstyle="->"))
 ax.legend(handles=[blue_patch, red_patch, red_dot, blue_dot, green_star], loc='best', title='Legend')
+# </editor-fold>
 
+# <editor-fold desc="define variables">
 # Copy main dictionaries for using next for loops (SIF)
-fix1, fix2, fix3 = Taxis.copy(), passengers_O.copy(), passengers_D.copy()
-
-# Create file for writing print lines in a text file
-file = open('/home/samim/PycharmProjects/SharedTaxi/log.txt', 'w')
-# Writing in log.txt file
-file.write('{0}\n\n{1}\n\n{2}\n\n{3}\n\n'.format(Passengers_O, fix2, fix3, fix1))
+Taxis_copy, riders_O_copy, riders_D_copy = Taxis.copy(), riders_O.copy(), riders_D.copy()
 
 # y_Traveled_Distance == Sharing Mode
 # y_Traveled_distance == Sharing Mode + Individual Mode
 # y_traveled_distance == Individual Mode
 No_riders_list, No_zero_list, No_one_list, No_two_list, No_three_list, No_four_list = [], [], [], [], [], []
 y_Traveled_Distance, y_Traveled_distance, y_traveled_distance = [], [], []
+api_list, api_fix, elapsed_time, rss = [], api, [], []
+# </editor-fold>
 
-# Create excel file for results (output.xlsx)
+# <editor-fold desc="Create text file for writing print lines">
+file = open('/home/samim/PycharmProjects/SharedTaxi/log.txt', 'w')
+# Writing in log.txt file
+file.write('{0}\n\n{1}\n\n{2}\n\n{3}\n\n'.format(Riders_O, riders_O_copy, riders_D_copy, Taxis_copy))
+# </editor-fold>
+
+# <editor-fold desc="Create excel file for results (output.xlsx)">
 excel_writer = pandas.ExcelWriter('/home/samim/PycharmProjects/SharedTaxi/output.xlsx')
+# </editor-fold>
 
-# # Create excel file for clustering (clustering.xlsx)
-# excel_writer_clustering = pandas.ExcelWriter('/home/samim/PycharmProjects/SharedTaxi/clustering.xlsx')
-
+# <editor-fold desc="summary of sif sheet in active_cars">
 # Data frame for active cars in system
-df_active_cars = pandas.DataFrame(columns=['No_zero',
-                                           'No_one',
-                                           'No_two',
-                                           'No_three',
-                                           'No_four',
+df_active_cars = pandas.DataFrame(columns=['#zero',
+                                           '#one',
+                                           '#two',
+                                           '#three',
+                                           '#four',
                                            'Sum_taxi',
-                                           'Sum_passenger',
+                                           'Sum_rider',
                                            'Nan',
                                            'Missing',
                                            'Total'])
-# print(api)
-api_list, api_fix, elapsed_time, rss = [], api, [], []
+# </editor-fold>
+
+Start = time.time()
 # For loop to find optimum SIF ======================================================== Sharing importance factor == SIF
-for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
-
-    start = time.time()
-    api = api_fix
-
+for SIF in [round(_, 1) for _ in np.linspace(1, 2.5, 16)]:
     # Writing in log.txt file
     file.write((('\n\n*\n*\n SIF = {0}\n*\n*\n'.format(SIF)).replace(' ', ' ' * 40, 1)).replace('*', '*' * 100, 4))
 
+    # <editor-fold desc="sheet for each sif">
     # Data frame for results with headers
     df = pandas.DataFrame(columns=['Taxi',
                                    'Sequence at the origin', 'Sequence at the destination',
@@ -298,251 +316,251 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                    'P1', 'P2', 'P3', 'P4',
                    'P1', 'P2', 'P3', 'P4',
                    'P1', 'P2', 'P3', 'P4']
+    # </editor-fold>
 
-    # # ========================================================================================================
-    # # ========================================================================================================Clustering
-    # # ========================================================================================================
-    # df_clustering = pandas.DataFrame(columns=['Taxi',
-    #                                           'Riders',
-    #                                           'Origin',
-    #                                           'CoM',
-    #                                           'Destination',
-    #                                           'CoM'])
-
-    # For each SIF we should Retrieve Taxis, passengers_O and passengers_D dictionaries
-    Taxis, passengers_O, passengers_D = fix1.copy(), fix2.copy(), fix3.copy()
-
+    # <editor-fold desc="define variables">
+    start_sif_loop = time.time()
+    api = api_fix
+    # For each SIF we should Retrieve Taxis, riders_O and riders_D dictionaries
+    Taxis, riders_O, riders_D = Taxis_copy.copy(), riders_O_copy.copy(), riders_D_copy.copy()
     No_zero, No_one, No_two, No_three, No_four = 0, 0, 0, 0, 0  # Number of taxis with this riders
     Traveled_Distance = {}  # Distance each taxi travel in sharing mode
+    nan_rider = []
+    # </editor-fold>
 
-    nan_passenger = []
-    # Check all taxis, each one of them
+    # Check all taxis
     for each_taxi in generator(0, len(Taxis)):
-        check = False  # Check if there is at least one taxi in Defaultdict_comb_loc_com_cons_min dictionary
-        check_3 = False  # Check if there is at least one taxi in Defaultdict_comb_loc_com_cons_min_3 dictionary
+        check = True  # Check if there is at least one taxi in comb_locO_com_cons_min dictionary
+        check_3 = True  # Check if there is at least one taxi in comb_locO_com_cons_min_3 dictionary
         # Writing in log.txt file
         # file.write((('\n\n*\n Taxi = {}\n'.format(each_taxi+1)).replace(' ', ' ' * 40, 1)).replace('*', '*' * 100, 2))
 
-        # Putting possible riders in taxi's list
-        # (i.e. if rider be in catchment area of taxi, it will be put in taxi's list)
-        Defaultdict = collections.defaultdict(list)
+        # <editor-fold desc="if rider be in catchment area of taxi, it will be put in taxi's list">
+        taxi_catchment = collections.defaultdict(list)
         for j in Taxis:
             catchment_area = patches.Circle(Taxis[j], radius=3)
-            for each_person in passengers_O:
-                if catchment_area.contains_point(passengers_O[each_person]):
-                    Defaultdict[j].append(each_person)
+            for each_person in riders_O:
+                if catchment_area.contains_point(riders_O[each_person]):
+                    taxi_catchment[j].append(each_person)
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Defaultdict', dict(Defaultdict)))
+        # file.write('{0:41} ::= {1}\n'.format('taxi_catchment', dict(taxi_catchment)))
+        # </editor-fold>
+
+        # <editor-fold desc="4-combination">
         # --------------------------------------------------------------------------------------------------------------
         #                                                   4
         # --------------------------------------------------------------------------------------------------------------
         # Find 4-combination of riders for each taxi
-        Defaultdict_comb = collections.defaultdict(list)
-        for i in Defaultdict:
-            if len(Defaultdict[i]) >= 4:
-                for j in itertools.combinations(Defaultdict[i], 4):
-                    Defaultdict_comb[i].append(j)
+        comb = collections.defaultdict(list)
+        for i in taxi_catchment:
+            if len(taxi_catchment[i]) >= 4:
+                for j in itertools.combinations(taxi_catchment[i], 4):
+                    comb[i].append(j)
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Defaultdict_comb', dict(Defaultdict_comb)))
+        # file.write('{0:41} ::= {1}\n'.format('comb', dict(comb)))
 
-        # Origin 4-coordinates (from passenger_O dictionary) for 4-combination of riders for each taxi
-        Defaultdict_comb_loc = collections.defaultdict(list)
-        for i in Defaultdict_comb:
-            for j in range(len(Defaultdict_comb[i])):
+        # Origin 4-coordinates (from rider_O dictionary) for 4-combination of riders for each taxi
+        comb_locO = collections.defaultdict(list)
+        for i in comb:
+            for j in range(len(comb[i])):
                 list_temporary = []
-                for k in range(len(Defaultdict_comb[i][j])):
-                    list_temporary.append(passengers_O[Defaultdict_comb[i][j][k]])
-                Defaultdict_comb_loc[i].append(list_temporary)
+                for k in range(len(comb[i][j])):
+                    list_temporary.append(riders_O[comb[i][j][k]])
+                comb_locO[i].append(list_temporary)
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Defaultdict_comb_loc', dict(Defaultdict_comb_loc)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_locO', dict(comb_locO)))
 
-        # Destination 4-coordinates (from passenger_D dictionary) for 4-combination of riders for each taxi
-        Des_Defaultdict_comb_loc = collections.defaultdict(list)
-        for i in Defaultdict_comb:
-            for j in range(len(Defaultdict_comb[i])):
+        # Destination 4-coordinates (from rider_D dictionary) for 4-combination of riders for each taxi
+        comb_locD = collections.defaultdict(list)
+        for i in comb:
+            for j in range(len(comb[i])):
                 list_temporary = []
-                for k in range(len(Defaultdict_comb[i][j])):
-                    list_temporary.append(passengers_D[re.sub(r'o', 'd', Defaultdict_comb[i][j][k])])
-                Des_Defaultdict_comb_loc[i].append(list_temporary)
+                for k in range(len(comb[i][j])):
+                    list_temporary.append(riders_D[re.sub(r'o', 'd', comb[i][j][k])])
+                comb_locD[i].append(list_temporary)
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Des_Defaultdict_comb_loc', dict(Des_Defaultdict_comb_loc)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_locD', dict(comb_locD)))
 
         # Calculating center of points for each group of riders for each taxi in origin
-        Defaultdict_comb_loc_com = collections.defaultdict(list)
-        for i in Defaultdict_comb_loc:
-            Defaultdict_comb_loc_com[i].append((np.array(Defaultdict_comb_loc[i]).mean(axis=1)).tolist())
+        comb_locO_com = collections.defaultdict(list)
+        for i in comb_locO:
+            comb_locO_com[i].append((np.array(comb_locO[i]).mean(axis=1)).tolist())
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Defaultdict_comb_loc_com', dict(Defaultdict_comb_loc_com)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_locO_com', dict(comb_locO_com)))
 
         # Calculating center of points for each group of riders for each taxi in destination
-        Des_Defaultdict_comb_loc_com = collections.defaultdict(list)
-        for i in Defaultdict_comb_loc:
-            Des_Defaultdict_comb_loc_com[i].append((np.array(Des_Defaultdict_comb_loc[i]).mean(axis=1)).tolist())
+        comb_locD_com = collections.defaultdict(list)
+        for i in comb_locO:
+            comb_locD_com[i].append((np.array(comb_locD[i]).mean(axis=1)).tolist())
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Des_Defaultdict_comb_loc_com', dict(Des_Defaultdict_comb_loc_com)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_locD_com', dict(comb_locD_com)))
 
         # --------------------------------------------------------------------------------------------------------------
         #                   Calculating constraints (const_origin + const_taxi + const_destination)
         # --------------------------------------------------------------------------------------------------------------
-        Defaultdict_comb_loc_com_cons = collections.defaultdict(list)
-        for i in Defaultdict_comb_loc_com:
-            for j in range(len(Defaultdict_comb_loc[i])):
+        comb_locO_com_cons = collections.defaultdict(list)
+        for i in comb_locO_com:
+            for j in range(len(comb_locO[i])):
                 Constraint = 0
-                for k in range(len(Defaultdict_comb_loc[i][j])):
-                    Constraint += distance(Defaultdict_comb_loc_com[i][0][j], Defaultdict_comb_loc[i][j][k]) + \
-                                 distance(Des_Defaultdict_comb_loc_com[i][0][j], Des_Defaultdict_comb_loc[i][j][k])
-                Defaultdict_comb_loc_com_cons[i].append(Constraint +
-                                                        distance(Defaultdict_comb_loc_com[i][0][j], Taxis[i]))
+                for k in range(len(comb_locO[i][j])):
+                    Constraint += distance(comb_locO_com[i][0][j], comb_locO[i][j][k]) + \
+                                  distance(comb_locD_com[i][0][j], comb_locD[i][j][k])
+                comb_locO_com_cons[i].append(Constraint + distance(comb_locO_com[i][0][j], Taxis[i]))
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Defaultdict_comb_loc_com_cons', dict(Defaultdict_comb_loc_com_cons)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_locO_com_cons', dict(comb_locO_com_cons)))
 
         # Minimum values of Constraints
-        Defaultdict_comb_loc_com_cons_min = collections.defaultdict(list)
-        for i in Defaultdict_comb_loc_com_cons:
-            Defaultdict_comb_loc_com_cons_min[i].append(min(Defaultdict_comb_loc_com_cons[i]))
-        # If Defaultdict_comb_loc_com_cons dictionary be empty then Defaultdict_comb_loc_com_cons_min will be empty
-        # i.e. minimum calculating get ValueError so we can't calculate four in line 445
+        comb_locO_com_cons_min = collections.defaultdict(list)
+        for i in comb_locO_com_cons:
+            comb_locO_com_cons_min[i].append(min(comb_locO_com_cons[i]))
+        # If comb_locO_com_cons dictionary be empty then comb_locO_com_cons_min will be empty
+        # i.e. minimum calculating get ValueError so we can't calculate four in Comparision minimum of 3 and 4 riders
         try:
-            minimum = min(Defaultdict_comb_loc_com_cons_min, key=Defaultdict_comb_loc_com_cons_min.get)
+            minimum = min(comb_locO_com_cons_min, key=comb_locO_com_cons_min.get)
             # Writing in log.txt file
-            # file.write('{0:41} ::= {1}\n'.format('Defaultdict_comb_loc_com_cons_min',
-            #                                      dict(Defaultdict_comb_loc_com_cons_min)))
+            # file.write('{0:41} ::= {1}\n'.format('comb_locO_com_cons_min', dict(comb_locO_com_cons_min)))
             file.write('{0:41} ::= {1}\n'.format('4', minimum))
         except ValueError:
-            check = True
+            check = False
 
         # Index of minimum values of Constraints
-        Defaultdict_comb_loc_com_cons_min_index = collections.defaultdict(list)
-        for i in Defaultdict_comb_loc_com_cons:
-            index = Defaultdict_comb_loc_com_cons[i].index(min(Defaultdict_comb_loc_com_cons[i]))
-            Defaultdict_comb_loc_com_cons_min_index[i].append(index)
+        comb_locO_com_cons_min_index = collections.defaultdict(list)
+        for i in comb_locO_com_cons:
+            index = comb_locO_com_cons[i].index(min(comb_locO_com_cons[i]))
+            comb_locO_com_cons_min_index[i].append(index)
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Defaultdict_comb_loc_com_cons_min_index',
-        #                                      dict(Defaultdict_comb_loc_com_cons_min_index)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_locO_com_cons_min_index', dict(comb_locO_com_cons_min_index)))
+        # </editor-fold>
 
+        # <editor-fold desc="3-combination">
         # --------------------------------------------------------------------------------------------------------------
         #                                                  3
         # --------------------------------------------------------------------------------------------------------------
         # Find 3-combination of riders for each taxi
-        Defaultdict_comb_3 = collections.defaultdict(list)
-        for i in Defaultdict:
-            if len(Defaultdict[i]) >= 3:
-                for j in itertools.combinations(Defaultdict[i], 3):
-                    Defaultdict_comb_3[i].append(j)
+        comb_3 = collections.defaultdict(list)
+        for i in taxi_catchment:
+            if len(taxi_catchment[i]) >= 3:
+                for j in itertools.combinations(taxi_catchment[i], 3):
+                    comb_3[i].append(j)
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Defaultdict_comb_3', dict(Defaultdict_comb_3)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_3', dict(comb_3)))
 
-        # Origin 3-coordinates (from passenger_O dictionary) for 3-combination of riders for each taxi
-        Defaultdict_comb_loc_3 = collections.defaultdict(list)
-        for i in Defaultdict_comb_3:
-            for j in range(len(Defaultdict_comb_3[i])):
+        # Origin 3-coordinates (from rider_O dictionary) for 3-combination of riders for each taxi
+        comb_locO_3 = collections.defaultdict(list)
+        for i in comb_3:
+            for j in range(len(comb_3[i])):
                 list_temporary = []
-                for k in range(len(Defaultdict_comb_3[i][j])):
-                    list_temporary.append(passengers_O[Defaultdict_comb_3[i][j][k]])
-                Defaultdict_comb_loc_3[i].append(list_temporary)
+                for k in range(len(comb_3[i][j])):
+                    list_temporary.append(riders_O[comb_3[i][j][k]])
+                comb_locO_3[i].append(list_temporary)
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Defaultdict_comb_loc_3', dicr(Defaultdict_comb_loc_3)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_locO_3', dict(comb_locO_3)))
 
-        # Destination 3-coordinates (from passenger_D dictionary) for 3-combination of riders for each taxi
-        Des_Defaultdict_comb_loc_3 = collections.defaultdict(list)
-        for i in Defaultdict_comb_3:
-            for j in range(len(Defaultdict_comb_3[i])):
+        # Destination 3-coordinates (from rider_D dictionary) for 3-combination of riders for each taxi
+        comb_locD_3 = collections.defaultdict(list)
+        for i in comb_3:
+            for j in range(len(comb_3[i])):
                 list_temporary = []
-                for k in range(len(Defaultdict_comb_3[i][j])):
-                    list_temporary.append(passengers_D[re.sub(r'o', 'd', Defaultdict_comb_3[i][j][k])])
-                Des_Defaultdict_comb_loc_3[i].append(list_temporary)
+                for k in range(len(comb_3[i][j])):
+                    list_temporary.append(riders_D[re.sub(r'o', 'd', comb_3[i][j][k])])
+                comb_locD_3[i].append(list_temporary)
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Des_Defaultdict_comb_loc_3', dict(Des_Defaultdict_comb_loc_3)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_locD_3', dict(comb_locD_3)))
 
         # Calculating center of points for each group of riders for each taxi in origin
-        Defaultdict_comb_loc_com_3 = collections.defaultdict(list)
-        for i in Defaultdict_comb_loc_3:
-            Defaultdict_comb_loc_com_3[i].append((np.array(Defaultdict_comb_loc_3[i]).mean(axis=1)).tolist())
+        comb_locO_com_3 = collections.defaultdict(list)
+        for i in comb_locO_3:
+            comb_locO_com_3[i].append((np.array(comb_locO_3[i]).mean(axis=1)).tolist())
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Defaultdict_comb_loc_com_3', dict(Defaultdict_comb_loc_com_3)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_locO_com_3', dict(comb_locO_com_3)))
 
         # Calculating center of points for each group of riders for each taxi in destination
-        Des_Defaultdict_comb_loc_com_3 = collections.defaultdict(list)
-        for i in Defaultdict_comb_loc_3:
-            Des_Defaultdict_comb_loc_com_3[i].append((np.array(Des_Defaultdict_comb_loc_3[i]).mean(axis=1)).tolist())
+        comb_locD_com_3 = collections.defaultdict(list)
+        for i in comb_locO_3:
+            comb_locD_com_3[i].append((np.array(comb_locD_3[i]).mean(axis=1)).tolist())
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Des_Defaultdict_comb_loc_com_3', dict(Des_Defaultdict_comb_loc_com_3)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_locD_com_3', dict(comb_locD_com_3)))
 
         # --------------------------------------------------------------------------------------------------------------
         #                   Calculating constraints_3 (const_origin + const_taxi + const_destination)
         # --------------------------------------------------------------------------------------------------------------
-        Defaultdict_comb_loc_com_cons_3 = collections.defaultdict(list)
-        for i in Defaultdict_comb_loc_com_3:
-            for j in range(len(Defaultdict_comb_loc_3[i])):
+        comb_locO_com_cons_3 = collections.defaultdict(list)
+        for i in comb_locO_com_3:
+            for j in range(len(comb_locO_3[i])):
                 Constraint = 0
-                for k in range(len(Defaultdict_comb_loc_3[i][j])):
-                    Constraint += distance(Defaultdict_comb_loc_com_3[i][0][j], Defaultdict_comb_loc_3[i][j][k]) + \
-                                 distance(Des_Defaultdict_comb_loc_com_3[i][0][j], Des_Defaultdict_comb_loc_3[i][j][k])
+                for k in range(len(comb_locO_3[i][j])):
+                    Constraint += distance(comb_locO_com_3[i][0][j], comb_locO_3[i][j][k]) + \
+                                 distance(comb_locD_com_3[i][0][j], comb_locD_3[i][j][k])
                 # ================================================================================================== SIF
-                Defaultdict_comb_loc_com_cons_3[i].append(SIF*(Constraint +
-                                                               distance(Defaultdict_comb_loc_com_3[i][0][j], Taxis[i])))
+                comb_locO_com_cons_3[i].append(SIF*(Constraint + distance(comb_locO_com_3[i][0][j], Taxis[i])))
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Defaultdict_comb_loc_com_cons_3', dict(Defaultdict_comb_loc_com_cons_3)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_locO_com_cons_3', dict(comb_locO_com_cons_3)))
 
         # Minimum values of Constraints_3
-        Defaultdict_comb_loc_com_cons_min_3 = collections.defaultdict(list)
-        for i in Defaultdict_comb_loc_com_cons_3:
-            Defaultdict_comb_loc_com_cons_min_3[i].append(min(Defaultdict_comb_loc_com_cons_3[i]))
-        # If Defaultdict_comb_loc_com_cons_3 dictionary be empty then Defaultdict_comb_loc_com_cons_min_3 will be empty
-        # i.e. minimum_3 calculating get ValueError so we can't calculate three in line 449
+        comb_locO_com_cons_min_3 = collections.defaultdict(list)
+        for i in comb_locO_com_cons_3:
+            comb_locO_com_cons_min_3[i].append(min(comb_locO_com_cons_3[i]))
+        # If comb_locO_com_cons_3 dictionary be empty then comb_locO_com_cons_min_3 will be empty
+        # i.e. minimum_3 calculating get ValueError so we can't calculate three in Comparision minimum of 3 and 4 riders
         try:
-            minimum_3 = min(Defaultdict_comb_loc_com_cons_min_3, key=Defaultdict_comb_loc_com_cons_min_3.get)
+            minimum_3 = min(comb_locO_com_cons_min_3, key=comb_locO_com_cons_min_3.get)
             # Writing in log.txt file
-            # file.write('{0:41} ::= {1}\n'.format('Defaultdict_comb_loc_com_cons_min_3',
-            #                                      dict(Defaultdict_comb_loc_com_cons_min_3)))
+            # file.write('{0:41} ::= {1}\n'.format('comb_locO_com_cons_min_3', dict(comb_locO_com_cons_min_3)))
             file.write('{0:41} ::= {1}\n'.format('3', minimum_3))
         except ValueError:
-            check_3 = True
+            check_3 = False
 
         # Index of minimum values of Constraints_3
-        Defaultdict_comb_loc_com_cons_min_index_3 = collections.defaultdict(list)
-        for i in Defaultdict_comb_loc_com_cons_3:
-            index = Defaultdict_comb_loc_com_cons_3[i].index(min(Defaultdict_comb_loc_com_cons_3[i]))
-            Defaultdict_comb_loc_com_cons_min_index_3[i].append(index)
+        comb_locO_com_cons_min_index_3 = collections.defaultdict(list)
+        for i in comb_locO_com_cons_3:
+            index = comb_locO_com_cons_3[i].index(min(comb_locO_com_cons_3[i]))
+            comb_locO_com_cons_min_index_3[i].append(index)
         # Writing in log.txt file
-        # file.write('{0:41} ::= {1}\n'.format('Defaultdict_comb_loc_com_cons_min_index_3',
-        #                                      dict(Defaultdict_comb_loc_com_cons_min_index_3)))
+        # file.write('{0:41} ::= {1}\n'.format('comb_locO_com_cons_min_index_3', dict(comb_locO_com_cons_min_index_3)))
+        # </editor-fold>
 
+        # <editor-fold desc="terminate the SIF loop">
         # --------------------------------------------------------------------------------------------------------------
-        # If Defaultdict_comb_loc_com_cons and Defaultdict_comb_loc_com_cons_3 dictionaries be empty then terminate loop
+        # If comb_locO_com_cons and comb_locO_com_cons_3 dictionaries be empty then terminate loop
         # i.e. if there are no riders in catchment area of any taxis then stop this loop and go for new SIF
-        if not bool(Defaultdict_comb_loc_com_cons) and not bool(Defaultdict_comb_loc_com_cons_3):
+        if not bool(comb_locO_com_cons) and not bool(comb_locO_com_cons_3):
             # Writing in log.txt file
             file.write('\n{}\n\n'.format('There is no possible taxi to choose.'))
             break
+        # </editor-fold>
+
+        # <editor-fold desc="Comparision minimum of 3 and 4 riders">
         # --------------------------------------------------------------------------------------------------------------
         #                                  Comparision minimum of 3 and 4 riders
         # --------------------------------------------------------------------------------------------------------------
         try:
-            four = Defaultdict_comb_loc_com_cons[minimum][Defaultdict_comb_loc_com_cons_min_index[minimum][0]] / 4
+            four = comb_locO_com_cons[minimum][comb_locO_com_cons_min_index[minimum][0]] / 4
         except (IndexError, NameError):
             four = 1000
         try:
-            three = Defaultdict_comb_loc_com_cons_3[minimum_3][Defaultdict_comb_loc_com_cons_min_index_3[minimum_3][0]] / 3
+            three = comb_locO_com_cons_3[minimum_3][comb_locO_com_cons_min_index_3[minimum_3][0]] / 3
         except (IndexError, NameError):
             three = 1000
         # Writing in log.txt file
         file.write('{0:41} ::= {1}\n'.format('four', four))
         file.write('{0:41} ::= {1}\n'.format('three', three))
+        # </editor-fold>
 
         # We want to know do we have any taxi with 4 riders, by boolean operator (check)
-        if four <= three and not check:
+        if four <= three and check:
+            # <editor-fold desc="if four choose">
             # Writing in log.txt file
-            file.write('Taxi {0} is chosen with 4 passenger.\n'.format(minimum))
+            file.write('Taxi {0} is chosen with 4 rider.\n'.format(minimum))
             No_four += 1
+
             # ----------------------------------------------------------------------------------------------------------
             #                                       Shortest path (Start)
             # ----------------------------------------------------------------------------------------------------------
             # path_finding dictionary has two keys {1:[origin sequence], 2:[destination sequence]}
             path_finding = collections.defaultdict(list)
-            # Find chosen combination from Defaultdict_comb dictionary
-            chosen_passenger = Defaultdict_comb[minimum][Defaultdict_comb_loc_com_cons_min_index[minimum][0]]
-            for each_key in chosen_passenger:
+            # Find chosen combination from comb dictionary
+            chosen_rider = comb[minimum][comb_locO_com_cons_min_index[minimum][0]]
+            for each_key in chosen_rider:
                 path_finding[1].append(each_key)
                 path_finding[2].append(re.sub(r'o', 'd', each_key))
             # Writing in log.txt file
@@ -562,11 +580,11 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
             for j in range(len(path_finding_permutation[1])):
                 sum_dist = 0
                 for k in range(len(path_finding_permutation[1][j]) - 1):
-                    sum_dist += distance(passengers_O[path_finding_permutation[1][j][k]],
-                                         passengers_O[path_finding_permutation[1][j][k + 1]])
+                    sum_dist += distance(riders_O[path_finding_permutation[1][j][k]],
+                                         riders_O[path_finding_permutation[1][j][k + 1]])
                 path_finding_permutation_dist[1].append(sum_dist +
                                                         distance(Taxis[minimum],
-                                                                 passengers_O[path_finding_permutation[1][j][0]]))
+                                                                 riders_O[path_finding_permutation[1][j][0]]))
 
             # ----------------------------------------------------------------------------------------------------------
             # ----------------------------------------------------------------------------------------------------------
@@ -579,10 +597,10 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                 for j in range(len(path_finding_permutation[2])):
                     sum_dist = 0
                     for k in range(len(path_finding_permutation[2][j]) - 1):
-                        sum_dist += distance(passengers_D[path_finding_permutation[2][j][k]],
-                                             passengers_D[path_finding_permutation[2][j][k + 1]])
-                    list_temporary.append(sum_dist + distance(passengers_O[path_finding_permutation[1][i][3]],
-                                                              passengers_D[path_finding_permutation[2][j][0]]))
+                        sum_dist += distance(riders_D[path_finding_permutation[2][j][k]],
+                                             riders_D[path_finding_permutation[2][j][k + 1]])
+                    list_temporary.append(sum_dist + distance(riders_O[path_finding_permutation[1][i][3]],
+                                                              riders_D[path_finding_permutation[2][j][0]]))
                 path_finding_permutation_dist[2].append(list_temporary)
             # Writing in log.txt file
             file.write('{0:41} ::= {1}\n'.format('path_finding_permutation_dist', path_finding_permutation_dist))
@@ -605,19 +623,19 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
             # ----------------------------------------------------------------------------------------------------------
             #                                       Put results in df (Data Frame)
             # ----------------------------------------------------------------------------------------------------------
-            to_first_rider = distance(Taxis[minimum], fix2[path_min_1[0]])
-            origin = min_1 - distance(Taxis[minimum], fix2[path_min_1[0]])
-            transfer = distance(fix2[path_min_1[3]], fix3[path_min_2[0]])
+            to_first_rider = distance(Taxis[minimum], riders_O_copy[path_min_1[0]])
+            origin = min_1 - distance(Taxis[minimum], riders_O_copy[path_min_1[0]])
+            transfer = distance(riders_O_copy[path_min_1[3]], riders_D_copy[path_min_2[0]])
             destination = min(min_2) - transfer
 
             p1_share, p2_share, p3_share, p4_share = finding_distance_sharing(path_min_1, path_min_2)
 
-            p1_individual = distance(passengers_O[path_min_1[0]], passengers_D[re.sub(r'o', 'd', path_min_1[0])])
-            p2_individual = distance(passengers_O[path_min_1[1]], passengers_D[re.sub(r'o', 'd', path_min_1[1])])
-            p3_individual = distance(passengers_O[path_min_1[2]], passengers_D[re.sub(r'o', 'd', path_min_1[2])])
-            p4_individual = distance(passengers_O[path_min_1[3]], passengers_D[re.sub(r'o', 'd', path_min_1[3])])
+            p1_individual = distance(riders_O[path_min_1[0]], riders_D[re.sub(r'o', 'd', path_min_1[0])])
+            p2_individual = distance(riders_O[path_min_1[1]], riders_D[re.sub(r'o', 'd', path_min_1[1])])
+            p3_individual = distance(riders_O[path_min_1[2]], riders_D[re.sub(r'o', 'd', path_min_1[2])])
+            p4_individual = distance(riders_O[path_min_1[3]], riders_D[re.sub(r'o', 'd', path_min_1[3])])
 
-            # Share mode over individual mode for all chosen passengers
+            # Share mode over individual mode for all chosen riders
             lst1 = np.array([p1_share, p2_share, p3_share, p4_share], dtype='float')
             lst2 = np.array([p1_individual, p2_individual, p3_individual, p4_individual], dtype='float')
             divide = lst1 / lst2
@@ -627,9 +645,9 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
             # number_of_non_NaN_value = np.count_nonzero(~np.isnan(divide))
             number_of_NaN_value = np.count_nonzero(np.isnan(divide))
 
-            # nan passenger
+            # nan rider
             index_of_Nan = [i[0] for i in np.argwhere(np.isnan(divide)).tolist()]
-            [nan_passenger.append(path_min_1[i]) for i in index_of_Nan]
+            [nan_rider.append(path_min_1[i]) for i in index_of_Nan]
             index_of_non_Nan = [i[0] for i in np.argwhere(~np.isnan(divide)).tolist()]
 
             if number_of_NaN_value == 3 or number_of_NaN_value == 4:
@@ -651,14 +669,14 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                     No_two += 1
                 else:
                     No_three += 1
-                chosen_passenger = [path_min_1[i] for i in index_of_non_Nan]
+                chosen_rider = [path_min_1[i] for i in index_of_non_Nan]
                 # ------------------------------------------------------------------------------------------------------
                 #                                       2_Shortest path (Start)
                 # ------------------------------------------------------------------------------------------------------
                 # path_finding dictionary has two keys {1:[origin sequence], 2:[destination sequence]}
                 path_finding = collections.defaultdict(list)
-                # Find chosen combination from Defaultdict_comb dictionary
-                for each_key in chosen_passenger:
+                # Find chosen combination from comb dictionary
+                for each_key in chosen_rider:
                     path_finding[1].append(each_key)
                     path_finding[2].append(re.sub(r'o', 'd', each_key))
                 # Writing in log.txt file
@@ -678,11 +696,11 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                 for j in range(len(path_finding_permutation[1])):
                     sum_dist = 0
                     for k in range(len(path_finding_permutation[1][j]) - 1):
-                        sum_dist += distance(passengers_O[path_finding_permutation[1][j][k]],
-                                             passengers_O[path_finding_permutation[1][j][k + 1]])
+                        sum_dist += distance(riders_O[path_finding_permutation[1][j][k]],
+                                             riders_O[path_finding_permutation[1][j][k + 1]])
                     path_finding_permutation_dist[1].append(sum_dist +
                                                             distance(Taxis[minimum],
-                                                                     passengers_O[path_finding_permutation[1][j][0]]))
+                                                                     riders_O[path_finding_permutation[1][j][0]]))
                 # ------------------------------------------------------------------------------------------------------
                 # ------------------------------------------------------------------------------------------------------
                 # Calculating traveled distance for each permutation in destination based on origin permutations
@@ -695,14 +713,14 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                     for j in range(len(path_finding_permutation[2])):
                         sum_dist = 0
                         for k in range(len(path_finding_permutation[2][j]) - 1):
-                            sum_dist += distance(passengers_D[path_finding_permutation[2][j][k]],
-                                                 passengers_D[path_finding_permutation[2][j][k + 1]])
+                            sum_dist += distance(riders_D[path_finding_permutation[2][j][k]],
+                                                 riders_D[path_finding_permutation[2][j][k + 1]])
                         if number_of_NaN_value == 2:
-                            list_temporary.append(sum_dist + distance(passengers_O[path_finding_permutation[1][i][1]],
-                                                                      passengers_D[path_finding_permutation[2][j][0]]))
+                            list_temporary.append(sum_dist + distance(riders_O[path_finding_permutation[1][i][1]],
+                                                                      riders_D[path_finding_permutation[2][j][0]]))
                         elif number_of_NaN_value == 1:
-                            list_temporary.append(sum_dist + distance(passengers_O[path_finding_permutation[1][i][2]],
-                                                                      passengers_D[path_finding_permutation[2][j][0]]))
+                            list_temporary.append(sum_dist + distance(riders_O[path_finding_permutation[1][i][2]],
+                                                                      riders_D[path_finding_permutation[2][j][0]]))
                     path_finding_permutation_dist[2].append(list_temporary)
                 # Writing in log.txt file
                 file.write('{0:41} ::= {1}\n'.format('path_finding_permutation_dist', path_finding_permutation_dist))
@@ -725,37 +743,37 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                 # ------------------------------------------------------------------------------------------------------
                 #                                       Put results in df (Data Frame)
                 # ------------------------------------------------------------------------------------------------------
-                to_first_rider = distance(Taxis[minimum], fix2[path_min_1[0]])
-                origin = min_1 - distance(Taxis[minimum], fix2[path_min_1[0]])
+                to_first_rider = distance(Taxis[minimum], riders_O_copy[path_min_1[0]])
+                origin = min_1 - distance(Taxis[minimum], riders_O_copy[path_min_1[0]])
                 if number_of_NaN_value == 2:
-                    transfer = distance(fix2[path_min_1[1]], fix3[path_min_2[0]])
+                    transfer = distance(riders_O_copy[path_min_1[1]], riders_D_copy[path_min_2[0]])
 
                     p1_share, p2_share = finding_distance_sharing(path_min_1, path_min_2)
                     p3_share = np.NaN
                     p4_share = np.NaN
 
-                    p1_individual = distance(passengers_O[path_min_1[0]],
-                                             passengers_D[re.sub(r'o', 'd', path_min_1[0])])
-                    p2_individual = distance(passengers_O[path_min_1[1]],
-                                             passengers_D[re.sub(r'o', 'd', path_min_1[1])])
+                    p1_individual = distance(riders_O[path_min_1[0]],
+                                             riders_D[re.sub(r'o', 'd', path_min_1[0])])
+                    p2_individual = distance(riders_O[path_min_1[1]],
+                                             riders_D[re.sub(r'o', 'd', path_min_1[1])])
                     p3_individual = np.NaN
                     p4_individual = np.NaN
                 elif number_of_NaN_value == 1:
-                    transfer = distance(fix2[path_min_1[2]], fix3[path_min_2[0]])
+                    transfer = distance(riders_O_copy[path_min_1[2]], riders_D_copy[path_min_2[0]])
 
                     p1_share, p2_share, p3_share = finding_distance_sharing(path_min_1, path_min_2)
                     p4_share = np.NaN
 
-                    p1_individual = distance(passengers_O[path_min_1[0]],
-                                             passengers_D[re.sub(r'o', 'd', path_min_1[0])])
-                    p2_individual = distance(passengers_O[path_min_1[1]],
-                                             passengers_D[re.sub(r'o', 'd', path_min_1[1])])
-                    p3_individual = distance(passengers_O[path_min_1[2]],
-                                             passengers_D[re.sub(r'o', 'd', path_min_1[2])])
+                    p1_individual = distance(riders_O[path_min_1[0]],
+                                             riders_D[re.sub(r'o', 'd', path_min_1[0])])
+                    p2_individual = distance(riders_O[path_min_1[1]],
+                                             riders_D[re.sub(r'o', 'd', path_min_1[1])])
+                    p3_individual = distance(riders_O[path_min_1[2]],
+                                             riders_D[re.sub(r'o', 'd', path_min_1[2])])
                     p4_individual = np.NaN
                 destination = min(min_2) - transfer
 
-                # Share mode over individual mode for all chosen passengers
+                # Share mode over individual mode for all chosen riders
                 lst1 = np.array([p1_share, p2_share, p3_share, p4_share], dtype='float')
                 lst2 = np.array([p1_individual, p2_individual, p3_individual, p4_individual], dtype='float')
                 divide = lst1 / lst2
@@ -777,19 +795,9 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                                                 p1_share, p2_share, p3_share, p4_share,
                                                 p1_individual, p2_individual, p3_individual, p4_individual,
                                                 round(so1, 2), round(so2, 2), round(so3, 2), round(so4, 2)]
-            # if number_of_NaN_value in {0, 1, 2}:
-            #     path_min_1_loc = [passengers_O[i] for i in path_min_1]
-            #     path_min_2_loc = [passengers_D[i] for i in path_min_2]
-            #     df_clustering.loc['{}'.format(each_taxi+1)] = [minimum,
-            #                                                    path_min_1,
-            #                                                    path_min_1_loc,
-            #                                                    (np.array(path_min_1_loc).mean(0).round(1)).tolist(),
-            #                                                    path_min_2_loc,
-            #                                                    (np.array(path_min_2_loc).mean(0).round(1)).tolist()]
 
-            # Removing selected taxi and passengers
-            del_dict_item(minimum, Defaultdict_comb, Defaultdict_comb_loc_com_cons_min_index)
-
+            # Removing selected taxi and riders
+            del_dict_item(minimum, comb, comb_locO_com_cons_min_index)
 
             # Writing in log.txt file
             file.write('{0:41} ::= {1}\n'.format('index_min_1', index_min_1))
@@ -798,20 +806,22 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
             file.write('{0:41} ::= {1}\n'.format('index_min_2', index_min_2))
             file.write('{0:41} ::= {1}\n'.format('path_min_2', path_min_2))
             file.write('{0:41} ::= {1}\n'.format('min_2', min_2))
+            # </editor-fold>
 
         # We want to know do we have any taxi with 3 riders, by boolean operator (check_3)
-        elif four > three and not check_3:
+        elif four > three and check_3:
+            # <editor-fold desc="if three choose">
             # Writing in log.txt file
-            file.write('Taxi {0} is chosen with 3 passenger.\n'.format(minimum_3))
+            file.write('Taxi {0} is chosen with 3 rider.\n'.format(minimum_3))
             No_three += 1
             # ----------------------------------------------------------------------------------------------------------
             #                                      Shortest path_3 (Start)
             # ----------------------------------------------------------------------------------------------------------
             # path_finding dictionary has two keys {1:[origin sequence], 2:[destination sequence]}
             path_finding = collections.defaultdict(list)
-            # Find chosen combination from Defaultdict_comb_3 dictionary
-            chosen_passenger = Defaultdict_comb_3[minimum_3][Defaultdict_comb_loc_com_cons_min_index_3[minimum_3][0]]
-            for each_key in chosen_passenger:
+            # Find chosen combination from comb_3 dictionary
+            chosen_rider = comb_3[minimum_3][comb_locO_com_cons_min_index_3[minimum_3][0]]
+            for each_key in chosen_rider:
                 path_finding[1].append(each_key)
                 path_finding[2].append(re.sub(r'o', 'd', each_key))
             # Writing in log.txt file
@@ -831,11 +841,11 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
             for j in range(len(path_finding_permutation[1])):
                 sum_dist = 0
                 for k in range(len(path_finding_permutation[1][j]) - 1):
-                    sum_dist += distance(passengers_O[path_finding_permutation[1][j][k]],
-                                         passengers_O[path_finding_permutation[1][j][k + 1]])
+                    sum_dist += distance(riders_O[path_finding_permutation[1][j][k]],
+                                         riders_O[path_finding_permutation[1][j][k + 1]])
                 path_finding_permutation_dist[1].append(sum_dist +
                                                         distance(Taxis[minimum_3],
-                                                                 passengers_O[path_finding_permutation[1][j][0]]))
+                                                                 riders_O[path_finding_permutation[1][j][0]]))
 
             # ----------------------------------------------------------------------------------------------------------
             # ----------------------------------------------------------------------------------------------------------
@@ -848,10 +858,10 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                 for j in range(len(path_finding_permutation[2])):
                     sum_dist = 0
                     for k in range(len(path_finding_permutation[2][j]) - 1):
-                        sum_dist += distance(passengers_D[path_finding_permutation[2][j][k]],
-                                             passengers_D[path_finding_permutation[2][j][k + 1]])
-                    list_temporary.append(sum_dist + distance(passengers_O[path_finding_permutation[1][i][2]],
-                                                              passengers_D[path_finding_permutation[2][j][0]]))
+                        sum_dist += distance(riders_D[path_finding_permutation[2][j][k]],
+                                             riders_D[path_finding_permutation[2][j][k + 1]])
+                    list_temporary.append(sum_dist + distance(riders_O[path_finding_permutation[1][i][2]],
+                                                              riders_D[path_finding_permutation[2][j][0]]))
                 path_finding_permutation_dist[2].append(list_temporary)
             # Writing in log.txt file
             file.write('{0:41} ::= {1}\n'.format('path_finding_permutation_dist', path_finding_permutation_dist))
@@ -874,20 +884,20 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
             # ----------------------------------------------------------------------------------------------------------
             #                                       Put results in df (Data Frame)
             # ----------------------------------------------------------------------------------------------------------
-            to_first_rider = distance(Taxis[minimum_3], fix2[path_min_1[0]])
-            origin = min_1 - distance(Taxis[minimum_3], fix2[path_min_1[0]])
-            transfer = distance(fix2[path_min_1[2]], fix3[path_min_2[0]])
+            to_first_rider = distance(Taxis[minimum_3], riders_O_copy[path_min_1[0]])
+            origin = min_1 - distance(Taxis[minimum_3], riders_O_copy[path_min_1[0]])
+            transfer = distance(riders_O_copy[path_min_1[2]], riders_D_copy[path_min_2[0]])
             destination = min(min_2) - transfer
 
             p1_share, p2_share, p3_share = finding_distance_sharing(path_min_1, path_min_2)
             p4_share = np.NAN
 
-            p1_individual = distance(passengers_O[path_min_1[0]], passengers_D[re.sub(r'o', 'd', path_min_1[0])])
-            p2_individual = distance(passengers_O[path_min_1[1]], passengers_D[re.sub(r'o', 'd', path_min_1[1])])
-            p3_individual = distance(passengers_O[path_min_1[2]], passengers_D[re.sub(r'o', 'd', path_min_1[2])])
+            p1_individual = distance(riders_O[path_min_1[0]], riders_D[re.sub(r'o', 'd', path_min_1[0])])
+            p2_individual = distance(riders_O[path_min_1[1]], riders_D[re.sub(r'o', 'd', path_min_1[1])])
+            p3_individual = distance(riders_O[path_min_1[2]], riders_D[re.sub(r'o', 'd', path_min_1[2])])
             p4_individual = np.NAN
 
-            # Share mode over individual mode for all chosen passengers
+            # Share mode over individual mode for all chosen riders
             lst1 = np.array([p1_share, p2_share, p3_share], dtype='float')
             lst2 = np.array([p1_individual, p2_individual, p3_individual], dtype='float')
             divide = lst1 / lst2
@@ -898,9 +908,9 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
             # number_of_non_NaN_value = np.count_nonzero(~np.isnan(divide))
             number_of_NaN_value = np.count_nonzero(np.isnan(divide))
 
-            # nan passenger
+            # nan rider
             index_of_Nan = [i[0] for i in np.argwhere(np.isnan(divide)).tolist()]
-            [nan_passenger.append(path_min_1[i]) for i in index_of_Nan]
+            [nan_rider.append(path_min_1[i]) for i in index_of_Nan]
             index_of_non_Nan = [i[0] for i in np.argwhere(~np.isnan(divide)).tolist()]
 
             if number_of_NaN_value == 2 or number_of_NaN_value == 3:
@@ -919,14 +929,14 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                             replace(' ', ' ' * 40, 1)).replace('-', '-' * 100, 2))
                 No_three -= 1
                 No_two += 1
-                chosen_passenger = [path_min_1[i] for i in index_of_non_Nan]
+                chosen_rider = [path_min_1[i] for i in index_of_non_Nan]
                 # ------------------------------------------------------------------------------------------------------
                 #                                       2_Shortest path (Start)
                 # ------------------------------------------------------------------------------------------------------
                 # path_finding dictionary has two keys {1:[origin sequence], 2:[destination sequence]}
                 path_finding = collections.defaultdict(list)
-                # Find chosen combination from Defaultdict_comb dictionary
-                for each_key in chosen_passenger:
+                # Find chosen combination from comb dictionary
+                for each_key in chosen_rider:
                     path_finding[1].append(each_key)
                     path_finding[2].append(re.sub(r'o', 'd', each_key))
                 # Writing in log.txt file
@@ -946,11 +956,11 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                 for j in range(len(path_finding_permutation[1])):
                     sum_dist = 0
                     for k in range(len(path_finding_permutation[1][j]) - 1):
-                        sum_dist += distance(passengers_O[path_finding_permutation[1][j][k]],
-                                             passengers_O[path_finding_permutation[1][j][k + 1]])
+                        sum_dist += distance(riders_O[path_finding_permutation[1][j][k]],
+                                             riders_O[path_finding_permutation[1][j][k + 1]])
                     path_finding_permutation_dist[1].append(sum_dist +
                                                             distance(Taxis[minimum_3],
-                                                                     passengers_O[path_finding_permutation[1][j][0]]))
+                                                                     riders_O[path_finding_permutation[1][j][0]]))
 
                 # ------------------------------------------------------------------------------------------------------
                 # ------------------------------------------------------------------------------------------------------
@@ -964,10 +974,10 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                     for j in range(len(path_finding_permutation[2])):
                         sum_dist = 0
                         for k in range(len(path_finding_permutation[2][j]) - 1):
-                            sum_dist += distance(passengers_D[path_finding_permutation[2][j][k]],
-                                                 passengers_D[path_finding_permutation[2][j][k + 1]])
-                        list_temporary.append(sum_dist + distance(passengers_O[path_finding_permutation[1][i][1]],
-                                                                  passengers_D[path_finding_permutation[2][j][0]]))
+                            sum_dist += distance(riders_D[path_finding_permutation[2][j][k]],
+                                                 riders_D[path_finding_permutation[2][j][k + 1]])
+                        list_temporary.append(sum_dist + distance(riders_O[path_finding_permutation[1][i][1]],
+                                                                  riders_D[path_finding_permutation[2][j][0]]))
                     path_finding_permutation_dist[2].append(list_temporary)
                 # Writing in log.txt file
                 file.write('{0:41} ::= {1}\n'.format('path_finding_permutation_dist', path_finding_permutation_dist))
@@ -990,20 +1000,20 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                 # ------------------------------------------------------------------------------------------------------
                 #                                       Put results in df (Data Frame)
                 # ------------------------------------------------------------------------------------------------------
-                to_first_rider = distance(Taxis[minimum_3], fix2[path_min_1[0]])
-                origin = min_1 - distance(Taxis[minimum_3], fix2[path_min_1[0]])
-                transfer = distance(fix2[path_min_1[1]], fix3[path_min_2[0]])
+                to_first_rider = distance(Taxis[minimum_3], riders_O_copy[path_min_1[0]])
+                origin = min_1 - distance(Taxis[minimum_3], riders_O_copy[path_min_1[0]])
+                transfer = distance(riders_O_copy[path_min_1[1]], riders_D_copy[path_min_2[0]])
                 destination = min(min_2) - transfer
 
                 p1_share, p2_share = finding_distance_sharing(path_min_1, path_min_2)
                 p3_share, p4_share = np.NAN, np.NaN
 
-                p1_individual = distance(passengers_O[path_min_1[0]], passengers_D[re.sub(r'o', 'd', path_min_1[0])])
-                p2_individual = distance(passengers_O[path_min_1[1]], passengers_D[re.sub(r'o', 'd', path_min_1[1])])
+                p1_individual = distance(riders_O[path_min_1[0]], riders_D[re.sub(r'o', 'd', path_min_1[0])])
+                p2_individual = distance(riders_O[path_min_1[1]], riders_D[re.sub(r'o', 'd', path_min_1[1])])
                 p3_individual = np.NaN
                 p4_individual = np.NAN
 
-                # Share mode over individual mode for all chosen passengers
+                # Share mode over individual mode for all chosen riders
                 lst1 = np.array([p1_share, p2_share, p3_share, p4_share], dtype='float')
                 lst2 = np.array([p1_individual, p2_individual, p3_individual, p4_individual], dtype='float')
                 divide = lst1 / lst2
@@ -1026,18 +1036,8 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                                                   p1_individual, p2_individual, p3_individual, p4_individual,
                                                   round(so1, 2), round(so2, 2), round(so3, 2), round(so4, 2)]
 
-            # if number_of_NaN_value in {0, 1}:
-            #     path_min_1_loc = [passengers_O[i] for i in path_min_1]
-            #     path_min_2_loc = [passengers_D[i] for i in path_min_2]
-            #     df_clustering.loc['{}'.format(each_taxi+1)] = [minimum_3,
-            #                                                    path_min_1,
-            #                                                    path_min_1_loc,
-            #                                                    (np.array(path_min_1_loc).mean(0).round(1)).tolist(),
-            #                                                    path_min_2_loc,
-            #                                                    (np.array(path_min_2_loc).mean(0).round(1)).tolist()]
-
-            # Removing selected taxi and passengers
-            del_dict_item(minimum_3, Defaultdict_comb_3, Defaultdict_comb_loc_com_cons_min_index_3)
+            # Removing selected taxi and riders
+            del_dict_item(minimum_3, comb_3, comb_locO_com_cons_min_index_3)
 
             # Writing in log.txt file
             file.write('{0:41} ::= {1}\n'.format('index_min_1', index_min_1))
@@ -1046,39 +1046,45 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
             file.write('{0:41} ::= {1}\n'.format('index_min_2', index_min_2))
             file.write('{0:41} ::= {1}\n'.format('path_min_2', path_min_2))
             file.write('{0:41} ::= {1}\n'.format('min_2', min_2))
+            # </editor-fold>
 
-    # Sum up traveled distance of missing passengers by sharing mode, so we have Traveled_distance
-    missing_passenger = 0
-    for i in passengers_O:
-        missing_passenger += distance(passengers_O[i], passengers_D[re.sub(r'o', 'd', i)])
+    # <editor-fold desc="Sum up traveled distance of missing riders by sharing mode, so we have Traveled_distance">
+    missing_rider = 0
+    for i in riders_O:
+        missing_rider += distance(riders_O[i], riders_D[re.sub(r'o', 'd', i)])
+    # </editor-fold>
 
-    # Sum up traveled distance of passengers who exceed (share to individual) ratio
+    # <editor-fold desc="Sum up traveled distance of riders who exceed (share to individual) ratio">
     nan_pass = 0
-    for i in nan_passenger:
-        nan_pass += distance(fix2[i], fix3[re.sub(r'o', 'd', i)])
+    for i in nan_rider:
+        nan_pass += distance(riders_O_copy[i], riders_D_copy[re.sub(r'o', 'd', i)])
+    # </editor-fold>
 
     # Writing in log.txt file
-    file.write('{0:41} ::= {1}\n\n'.format('nan_passenger {}'.format(SIF), nan_passenger))
+    file.write('{0:41} ::= {1}\n\n'.format('nan_rider {}'.format(SIF), nan_rider))
     file.write('{0:41} ::= {1}\n\n'.format('Traveled_Distance {}'.format(SIF), Traveled_Distance))
     file.write('{0:41} ::= {1}\n'.format('1-traveled_distance_individual{}'.format(SIF), sum(traveled_distance.values())))
     file.write('{0:41} ::= {1}\n'.format('2-Traveled_Distance_sharing {}'.format(SIF), sum(Traveled_Distance.values())))
-    file.write('{0:41} ::= {1}\n'.format('3-missing_passenger {}'.format(SIF), missing_passenger))
-    file.write('{0:41} ::= {1}\n'.format('4-nan_passenger {}'.format(SIF), nan_pass))
+    file.write('{0:41} ::= {1}\n'.format('3-missing_rider {}'.format(SIF), missing_rider))
+    file.write('{0:41} ::= {1}\n'.format('4-nan_rider {}'.format(SIF), nan_pass))
     file.write('{0:41} ::= {1}\n'.format('5-Traveled_distance {} = (2+3+4)'.format(SIF),
-                                         sum(Traveled_Distance.values())+missing_passenger+nan_pass))
+                                         sum(Traveled_Distance.values())+missing_rider+nan_pass))
 
-    No_riders_list.append(No_two*2+No_three*3+No_four*4)
+    # <editor-fold desc="save each sif as new sheet">
+    df.to_excel(excel_writer, sheet_name='{}'.format(SIF))
+    # </editor-fold>
+
+    # <editor-fold desc="write each sif as a row in active_cars sheet">
+    No_riders_list.append(No_two * 2 + No_three * 3 + No_four * 4)
     No_zero_list.append(No_zero)
     No_one_list.append(No_one)
     No_two_list.append(No_two)
     No_three_list.append(No_three)
     No_four_list.append(No_four)
     y_Traveled_Distance.append(sum(Traveled_Distance.values()))
-    y_Traveled_distance.append(sum(Traveled_Distance.values()) + missing_passenger)
+    y_Traveled_distance.append(sum(Traveled_Distance.values()) + missing_rider)
     y_traveled_distance.append(sum(traveled_distance.values()))
 
-    # Save DataFrame as a sheet of excel
-    df.to_excel(excel_writer, sheet_name='{}'.format(SIF))
     df_active_cars.loc['{}'.format(SIF)] = [No_zero,
                                             No_one,
                                             No_two,
@@ -1086,28 +1092,29 @@ for SIF in [round(i, 1) for i in np.linspace(1, 2.5, 16)]:
                                             No_four,
                                             No_two+No_three+No_four,
                                             No_two*2+No_three*3+No_four*4,
-                                            len(nan_passenger),
-                                            len(passengers_O),
-                                            No_two*2+No_three*3+No_four*4+len(nan_passenger)+len(passengers_O)]
+                                            len(nan_rider),
+                                            len(riders_O),
+                                            No_two*2+No_three*3+No_four*4+len(nan_rider)+len(riders_O)]
+    # </editor-fold>
 
-    # # ========================================================================================================
-    # # ========================================================================================================Clustering
-    # # ========================================================================================================
-    # df_clustering.to_excel(excel_writer_clustering, sheet_name='{}'.format(SIF))
-
+    # <editor-fold desc="rss, api_list">
     rss.append(psutil.Process(os.getpid()).memory_info()[0])
-
     api_list.append(api)
-    end = time.time()
-    elapsed_time.append(round((end-start)/60, 2))
+    end_sif_loop = time.time()
+    elapsed_time.append(round((end_sif_loop-start_sif_loop)/60, 2))
+    # </editor-fold>
+End = time.time()
 
-# Save DataFrame as a sheet of excel
+# <editor-fold desc="save df_active_cars as active_cars sheet">
 df_active_cars.to_excel(excel_writer, sheet_name='active_cars')
+# </editor-fold>
+
+# <editor-fold desc="save outpu.xlsx file">
 excel_writer.save()
 excel_writer.close()
-# excel_writer_clustering.save()
-# excel_writer_clustering.close()
+# </editor-fold>
 
+# <editor-fold desc="outpu.xlsx style !">
 wb = openpyxl.load_workbook('/home/samim/PycharmProjects/SharedTaxi/output.xlsx')
 for ws in ['{}'.format(round(i, 1)) for i in np.linspace(1, 2.5, 16)]:
     wb[ws].merge_cells('A1:A2')
@@ -1126,68 +1133,69 @@ for ws in ['{}'.format(round(i, 1)) for i in np.linspace(1, 2.5, 16)]:
         shit = 0
         for cell in wb[ws][row]:
             if bullshit in {0, 1}:
-                cell.font = openpyxl.styles.Font(bold=False, color='FF800080')
+                cell.font = Font(bold=False, color='FF800080')
             if shit in {2, 3}:
                 pass
             else:
-                cell.alignment = openpyxl.styles.alignment.Alignment(horizontal='center', vertical='top')
+                cell.alignment = alignment.Alignment(horizontal='center', vertical='top')
             if shit in {0, 4, 5, 6, 8, 9, 10, 12, 13, 14, 16, 17, 18}:
                 pass
             else:
-                cell.border = openpyxl.styles.borders.Border(right=openpyxl.styles.borders.Side(style='double'))
+                cell.border = borders.Border(right=borders.Side(style='double'))
             shit += 1
         bullshit += 1
 wb.save('/home/samim/PycharmProjects/SharedTaxi/output.xlsx')
 wb.close()
+# </editor-fold>
 
-End = time.time()
-print('No_Taxi: {0}, No_passengers: {1}, solved in: {2} min'.format(No_Taxi, No_passengers, round((End-Start)/60, 2)))
-ax.set_title('No_Taxi: {0}, No_passengers: {1}, solved in: {2} min'.
-             format(No_Taxi, No_passengers, round((End-Start)/60, 2)))
+print('#Taxi: {0}, #Rider: {1}, solved in: {2} min'.format(No_Taxi, No_riders, round((End-Start)/60, 2)))
+ax.set_title('#Taxi: {0}, #Rider: {1}, solved in: {2} min'.
+             format(No_Taxi, No_riders, round((End-Start)/60, 2)))
 
+# <editor-fold desc="plotly body">
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++Number of active car-plotly
 x = np.linspace(1, 2.5, 16)
-# plot SIF versus No_zero
+# plot SIF versus #zero
 trace0 = plotly.graph_objs.Scatter(
     x=x,
     y=np.array(No_zero_list),
     mode='lines+markers',
-    name='SIF versus No_zero'
+    name='SIF versus #zero'
 )
-# plot SIF versus No_one
+# plot SIF versus #one
 trace1 = plotly.graph_objs.Scatter(
     x=x,
     y=np.array(No_one_list),
     mode='lines+markers',
-    name='SIF versus No_one'
+    name='SIF versus #one'
 )
-# plot SIF versus No_two
+# plot SIF versus #two
 trace2 = plotly.graph_objs.Scatter(
     x=x,
     y=np.array(No_two_list),
     mode='lines+markers',
-    name='SIF versus No_two'
+    name='SIF versus #two'
 )
-# plot SIF versus No_three
+# plot SIF versus #three
 trace3 = plotly.graph_objs.Scatter(
     x=x,
     y=np.array(No_three_list),
     mode='lines+markers',
-    name='SIF versus No_three'
+    name='SIF versus #three'
 )
-# plot SIF versus No_four
+# plot SIF versus #four
 trace4 = plotly.graph_objs.Scatter(
     x=x,
     y=np.array(No_four_list),
     mode='lines+markers',
-    name='SIF versus No_four'
+    name='SIF versus #four'
 )
-# plot SIF versus (No_two+No_three+No_four)
+# plot SIF versus (#two+#three+#four)
 trace5 = plotly.graph_objs.Scatter(
     x=x,
     y=np.array(No_two_list) + np.array(No_three_list) + np.array(No_four_list),
     mode='lines+markers',
-    name='SIF versus No_two+No_three+No_four'
+    name='SIF versus #two+#three+#four'
 )
 data = [trace0, trace1, trace2, trace3, trace4, trace5]
 layout = plotly.graph_objs.Layout(
@@ -1204,23 +1212,23 @@ fig1 = plotly.graph_objs.Figure(data=data, layout=layout)
 plotly.offline.plot(fig1, filename='active_taxi.html', auto_open=False)
 
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++No_Riders-plotly
-# plot SIF versus No_riders
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#Riders-plotly
+# plot SIF versus #riders
 trace0 = plotly.graph_objs.Scatter(
     x=x,
     y=np.array(No_riders_list),
     mode='lines+markers',
-    name='SIF versus No_riders'
+    name='SIF versus #riders'
 )
 data = [trace0]
 layout = plotly.graph_objs.Layout(
-    title='<b>SIF versus No_riders</b>',
+    title='<b>SIF versus #riders</b>',
     titlefont=dict(family='Comic Sans MS', size=18, color='#3c3c3c'),
     hovermode='closest',
     legend=dict(x=1, y=.5, traceorder='normal', font=dict(family='Courier', size=15, color='#000'),
                 bgcolor='#FFFFFF', bordercolor='#E2E2E2', borderwidth=2),
     xaxis=dict(title='SIF', zeroline=True, gridwidth=2),
-    yaxis=dict(title='Numbers of passengers who used SharedTaxi', zeroline=True, gridwidth=2),
+    yaxis=dict(title='Numbers of riders who used SharedTaxi', zeroline=True, gridwidth=2),
     showlegend=True
 )
 fig1 = plotly.graph_objs.Figure(data=data, layout=layout)
@@ -1264,53 +1272,53 @@ fig2 = plotly.graph_objs.Figure(data=data, layout=layout)
 plotly.offline.plot(fig2, filename='traveled_distance.html', auto_open=False)
 
 
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++passengers-plotly
-# plot passengers in origin
-xo, yo = zip(*list(fix2.values()))
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++riders-plotly
+# plot riders in origin
+xo, yo = zip(*list(riders_O_copy.values()))
 zo = []
-for i in generator(0, len(list(fix2.values()))):
-    Sum = sum([1 if j == list(fix2.values())[i] else 0 for j in list(fix2.values())[:i]])
+for i in generator(0, len(list(riders_O_copy.values()))):
+    Sum = sum([1 if j == list(riders_O_copy.values())[i] else 0 for j in list(riders_O_copy.values())[:i]])
     zo.append(Sum)
 trace0 = plotly.graph_objs.Scatter3d(
     x=xo,
     y=yo,
     z=zo,
-    text=list(fix2.keys()),
+    text=list(riders_O_copy.keys()),
     textfont=dict(size=8),
     mode='markers+text',
     marker=dict(color='#00bfff', size=3, symbol='circle', line=dict(color='#0000ff', width=1), opacity=0.9),
     textposition='top center',
-    name='Passengers in Origin'
+    name='Riders in Origin'
 )
 
-# plot passengers in destination
-xd, yd = map(list, zip(*list(fix3.values())))
+# plot riders in destination
+xd, yd = map(list, zip(*list(riders_D_copy.values())))
 zd = []
-for i in generator(0, len(list(fix3.values()))):
-    Sum = sum([1 if j == list(fix3.values())[i] else 0 for j in list(fix3.values())[:i]])
+for i in generator(0, len(list(riders_D_copy.values()))):
+    Sum = sum([1 if j == list(riders_D_copy.values())[i] else 0 for j in list(riders_D_copy.values())[:i]])
     zd.append(Sum)
 trace1 = plotly.graph_objs.Scatter3d(
     x=xd,
     y=yd,
     z=zd,
-    text=list(fix3.keys()),
+    text=list(riders_D_copy.keys()),
     textfont=dict(size=8),
     mode='markers+text',
     marker=dict(color='#faaa0a', size=3, symbol='circle', line=dict(color='#9400d3', width=1), opacity=0.8),
-    name='Passengers in Destination'
+    name='Riders in Destination'
 )
 
 # plot taxis
-xt, yt = map(list, zip(*list(fix1.values())))
+xt, yt = map(list, zip(*list(Taxis_copy.values())))
 zt = []
-for i in generator(0, len(list(fix1.values()))):
-    Sum = sum([1 if j == list(fix1.values())[i] else 0 for j in list(fix1.values())[:i]])
+for i in generator(0, len(list(Taxis_copy.values()))):
+    Sum = sum([1 if j == list(Taxis_copy.values())[i] else 0 for j in list(Taxis_copy.values())[:i]])
     zt.append(Sum)
 trace2 = plotly.graph_objs.Scatter3d(
     x=xt,
     y=yt,
     z=zt,
-    text=list(fix1.keys()),
+    text=list(Taxis_copy.keys()),
     textfont=dict(size=8),
     mode='markers+text',
     marker=dict(color='#800080', size=3, symbol='x', line=dict(color='#fa00fa', width=1), opacity=0.8),
@@ -1318,7 +1326,7 @@ trace2 = plotly.graph_objs.Scatter3d(
 )
 data = [trace0, trace1, trace2]
 layout = plotly.graph_objs.Layout(
-    title='Taxi: {0}, passengers: {1}, solved in: {2} min'.format(No_Taxi, No_passengers, round((End-Start)/60, 2)),
+    title='Taxi: {0}, riders: {1}, solved in: {2} min'.format(No_Taxi, No_riders, round((End-Start)/60, 2)),
     titlefont=dict(family='Comic Sans MS', size=8, color='rgb(60, 60, 60)'),
     margin=dict(r=0, b=0, l=0, t=0),
     legend=dict(x=1, y=.5, traceorder='normal', font=dict(family='Courier', size=15, color='#000'),
@@ -1330,8 +1338,8 @@ layout = plotly.graph_objs.Layout(
                zaxis=dict(tickfont=dict(size=12), backgroundcolor="#e6e6c8", gridcolor="#ffffff", showbackground=True,
                           zerolinecolor="#ffffff"),
                dragmode="turntable",
-               annotations=[dict(showarrow=True, z=3, text='<b>Taxi: {0}, passengers: {1}, solved in: {2} min</b>'.
-                                 format(No_Taxi, No_passengers, round((End-Start)/60, 2)), textangle=0,
+               annotations=[dict(showarrow=True, z=3, text='<b>Taxi: {0}, riders: {1}, solved in: {2} min</b>'.
+                                 format(No_Taxi, No_riders, round((End-Start)/60, 2)), textangle=0,
                                  font=dict(family='Comic Sans MS', size=18, color='#3c3c3c'),
                                  arrowcolor="rgba(255, 255, 255, .1)", ax=0, ay=-100)]  # rgba(255,255,255,0.1)=#fafafa
                )
@@ -1423,38 +1431,40 @@ html_graphs.write("<object data='elapsed_time.html' width='900' height='700'></o
 html_graphs.write("<object data='rss.html' width='900' height='700'></object>"+"\n")
 html_graphs.write("</body></html>")
 html_graphs.close()
+# </editor-fold>
 
 
+# <editor-fold desc="plot body">
 # ==================================================================================================================plot
 fig1, axes1 = plt.subplots(nrows=3, ncols=3)
 x_new = np.linspace(x.min(), x.max(), 300)
 
-# plot SIF versus No_three
+# plot SIF versus #three
 y = np.array(No_three_list)
 f = interp1d(x, y, kind='quadratic')
 y_smooth = f(x_new)
 axes1[0, 0].plot(x_new, y_smooth)
 axes1[0, 0].scatter(x, y)
-axes1[0, 0].set_title('SIF versus No_three')
+axes1[0, 0].set_title('SIF versus #three')
 axes1[0, 0].set_xlabel('SIF', fontsize=10)
 axes1[0, 0].set_ylabel('Numbers of active Taxi', fontsize=10)
 
-# plot SIF versus No_four
+# plot SIF versus #four
 y = np.array(No_four_list)
 f = interp1d(x, y, kind='quadratic')
 y_smooth = f(x_new)
 axes1[0, 1].plot(x_new, y_smooth)
 axes1[0, 1].scatter(x, y)
-axes1[0, 1].set_title('SIF versus No_four')
+axes1[0, 1].set_title('SIF versus #four')
 
-# plot SIF versus (No_two+No_three+No_four)
+# plot SIF versus (#two+#three+#four)
 temp_list = np.array(No_two_list) + np.array(No_three_list) + np.array(No_four_list)
 y = temp_list
 f = interp1d(x, y, kind='quadratic')
 y_smooth = f(x_new)
 axes1[0, 2].plot(x_new, y_smooth)
 axes1[0, 2].scatter(x, y)
-axes1[0, 2].set_title('SIF versus No_two+No_three+No_four')
+axes1[0, 2].set_title('SIF versus #two+#three+#four')
 
 # plot SIF versus Traveled_Distance
 y = np.array(y_Traveled_Distance)
@@ -1482,15 +1492,15 @@ axes1[1, 2].plot(x_new, y_smooth)
 axes1[1, 2].scatter(x, y)
 axes1[1, 2].set_title('SIF versus y_traveled_distance')
 
-# plot SIF versus No_Riders
+# plot SIF versus #Riders
 y = np.array(No_riders_list)
 f = interp1d(x, y, kind='quadratic')
 y_smooth = f(x_new)
 axes1[2, 0].plot(x_new, y_smooth)
 axes1[2, 0].scatter(x, y)
-axes1[2, 0].set_title('SIF versus No_Riders')
+axes1[2, 0].set_title('SIF versus #Riders')
 axes1[2, 0].set_xlabel('SIF', fontsize=10)
-axes1[2, 0].set_ylabel('Total No_Riders', fontsize=10)
+axes1[2, 0].set_ylabel('Total #Riders', fontsize=10)
 
 # plot SIF versus elapsed_time
 y = np.array(elapsed_time)
@@ -1521,3 +1531,4 @@ file.close()
 plt.show()
 fig.savefig('/home/samim/PycharmProjects/SharedTaxi/locations.png')
 fig1.savefig('/home/samim/PycharmProjects/SharedTaxi/plot.png')
+# </editor-fold>

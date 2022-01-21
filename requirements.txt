@@ -11,5 +11,5 @@ osmnx==0.9
 geopandas==0.4.0
 networkx==2.3
 plotly==3.4.1
-ipython==7.8.0
+ipython==7.16.3
 python_dateutil==2.8.0

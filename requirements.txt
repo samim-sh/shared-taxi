@@ -6,7 +6,7 @@ psutil==5.4.7
 mlxtend==0.15.0.0
 matplotlib==3.0.0
 folium==0.7.0
-numpy==1.15.2
+numpy==1.22.0
 osmnx==0.9
 geopandas==0.4.0
 networkx==2.3
